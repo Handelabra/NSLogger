@@ -131,7 +131,7 @@ extern "C" {
 
 // Functions to set and get the default logger
 extern void LoggerSetDefaultLogger(Logger *aLogger);
-extern Logger *LoggerGetDefaultLogger();
+extern Logger *LoggerGetDefaultLogger(void);
 
 // Initialize a new logger, set as default logger if this is the first one
 // Options default to:
@@ -139,7 +139,7 @@ extern Logger *LoggerGetDefaultLogger();
 // - buffer until connection = YES
 // - browse Bonjour = YES
 // - browse only locally on Bonjour = YES
-extern Logger* LoggerInit();
+extern Logger* LoggerInit(void);
 
 // Set logger options if you don't want the default options (see above)
 extern void LoggerSetOptions(Logger *logger, uint32_t options);
@@ -219,7 +219,7 @@ extern void LogStartBlock(NSString *format, ...);
 extern void LogStartBlockTo(Logger *logger, NSString *format, ...);
 
 // Mark the end of a block
-extern void LogEndBlock();
+extern void LogEndBlock(void);
 extern void LogEndBlockTo(Logger *logger);
 	
 #ifdef __cplusplus

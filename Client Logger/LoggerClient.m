@@ -148,7 +148,7 @@ static void LoggerFlushQueueToBufferStream(Logger *logger, BOOL firstEntryIsClie
 // Encoding functions
 static void	LoggerPushClientInfoToFrontOfQueue(Logger *logger);
 static void LoggerMessageAddTimestampAndThreadID(CFMutableDataRef encoder);
-static void LogDataInternal(Logger *logger, NSString *domain, int level, NSData *data, int binaryOrImageType);
+static void LogDataInternal(Logger *logger, NSString *domain, int level, NSData *data, int binaryOrImageType) __attribute__((unused));
 
 static CFMutableDataRef LoggerMessageCreate();
 static void LoggerMessageUpdateDataHeader(CFMutableDataRef data);
@@ -167,7 +167,7 @@ static pthread_mutex_t sDefaultLoggerMutex = PTHREAD_MUTEX_INITIALIZER;
 #pragma mark -
 #pragma mark Default logger
 // -----------------------------------------------------------------------------
-void LoggerSetDefautLogger(Logger *defaultLogger)
+static __attribute__((unused)) void LoggerSetDefautLogger(Logger *defaultLogger)
 {
 	pthread_mutex_lock(&sDefaultLoggerMutex);
 	sDefaultLogger = defaultLogger;
@@ -196,7 +196,7 @@ Logger *LoggerGetDefaultLogger()
 #pragma mark -
 #pragma mark Initialization and setup
 // -----------------------------------------------------------------------------
-Logger *LoggerInit()
+Logger *LoggerInit(void)
 {
 	LOGGERDBG(CFSTR("LoggerInit defaultLogger=%p"), sDefaultLogger);
 	
@@ -379,7 +379,7 @@ void LoggerFlush(Logger *logger, BOOL waitForConnection)
 	}
 }
 
-static void LoggerDbg(CFStringRef format, ...)
+static __attribute__((unused)) void LoggerDbg(CFStringRef format, ...)
 {
 	// Internal debugging function
 	// (what do you think, that we use the Logger to debug itself ??)
@@ -1588,7 +1588,7 @@ static CFMutableDataRef LoggerMessageCreate()
 	return data;
 }
 
-static void LoggerMessageAddInt16(CFMutableDataRef data, int16_t anInt, int key)
+static __attribute__((unused)) void LoggerMessageAddInt16(CFMutableDataRef data, int16_t anInt, int key)
 {
 	uint16_t partData = htonl(anInt);
 	uint8_t keyAndType[2] = {(uint8_t)key, PART_TYPE_INT16};
@@ -1606,7 +1606,7 @@ static void LoggerMessageAddInt32(CFMutableDataRef data, int32_t anInt, int key)
 	LoggerMessageUpdateDataHeader(data);
 }
 
-static void LoggerMessageAddInt64(CFMutableDataRef data, int64_t anInt, int key)
+static __attribute__((unused)) void LoggerMessageAddInt64(CFMutableDataRef data, int64_t anInt, int key)
 {
 	uint32_t partData[2] = {htonl((uint32_t)(anInt >> 32)), htonl((uint32_t)anInt)};
 	uint8_t keyAndType[2] = {(uint8_t)key, PART_TYPE_INT64};
@@ -2183,7 +2183,7 @@ void LogEndBlockTo(Logger *logger)
 	}
 }
 
-void LogEndBlock()
+void LogEndBlock(void)
 {
 	LogEndBlockTo(NULL);
 }
