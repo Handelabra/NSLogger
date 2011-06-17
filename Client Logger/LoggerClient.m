@@ -557,12 +557,12 @@ static CFStringRef LoggerCreateStringRepresentationFromBinaryData(CFDataRef data
 		for (j=i; j < 16; j++)
 			strcat(buffer, "   ");
 		
-		b = strlen(buffer);
+		b = (int)strlen(buffer);
 		buffer[b++] = '\'';
 		for (i=0; i < 16 && i < (int)dataLen; i++, q++)
 		{
 			if (*q >= 32 && *q < 128)
-				buffer[b++] = *q;
+				buffer[b++] = (char)*q;
 			else
 				buffer[b++] = ' ';
 		}
@@ -572,12 +572,12 @@ static CFStringRef LoggerCreateStringRepresentationFromBinaryData(CFDataRef data
 		buffer[b++] = '\n';
 		buffer[b] = 0;
 		
-		CFStringRef bufferStr = CFStringCreateWithBytesNoCopy(NULL, (const UInt8 *)buffer, strlen(buffer), kCFStringEncodingISOLatin1, false, kCFAllocatorNull);
+		CFStringRef bufferStr = CFStringCreateWithBytesNoCopy(NULL, (const UInt8 *)buffer, (CFIndex)strlen(buffer), kCFStringEncodingISOLatin1, false, kCFAllocatorNull);
 		CFStringAppend(s, bufferStr);
 		CFRelease(bufferStr);
 		
-		dataLen -= i;
-		offset += i;
+		dataLen -= (unsigned int)i;
+		offset += (unsigned int)i;
 	}
 	return s;
 }
@@ -633,11 +633,11 @@ static void LoggerLogToConsole(CFDataRef data)
 				uint8_t *r = q + l - 1;
 				while (l && (*r == ' ' || *r == '\t' || *r == '\n' || *r == '\r'))
 					r--, l--;
-				part = CFStringCreateWithBytesNoCopy(NULL, q, l, kCFStringEncodingUTF8, false, kCFAllocatorNull);
+				part = CFStringCreateWithBytesNoCopy(NULL, q, (CFIndex)l, kCFStringEncodingUTF8, false, kCFAllocatorNull);
 			}
 			else if (partType == PART_TYPE_BINARY)
 			{
-				part = CFDataCreateWithBytesNoCopy(NULL, p, partSize, kCFAllocatorNull);
+				part = CFDataCreateWithBytesNoCopy(NULL, p, (CFIndex)partSize, kCFAllocatorNull);
 			}
 			else if (partType == PART_TYPE_IMAGE)
 			{
@@ -710,7 +710,7 @@ static void LoggerLogToConsole(CFDataRef data)
 	struct tm t;
 	gmtime_r(&timestamp.tv_sec, &t);
 	strftime(buf, sizeof(buf)-1, "%T", &t);
-	CFStringRef ts = CFStringCreateWithBytesNoCopy(NULL, (const UInt8 *)buf, strlen(buf), kCFStringEncodingASCII, false, kCFAllocatorNull);
+	CFStringRef ts = CFStringCreateWithBytesNoCopy(NULL, (const UInt8 *)buf, (CFIndex)strlen(buf), kCFStringEncodingASCII, false, kCFAllocatorNull);
 	CFStringAppend(s, ts);
 	CFRelease(ts);
 
@@ -781,7 +781,7 @@ static void LoggerWriteMoreData(Logger *logger)
 				}
 				else
 				{
-					logger->sendBufferUsed = CFReadStreamRead(logger->bufferReadStream, logger->sendBuffer, logger->sendBufferSize);
+					logger->sendBufferUsed = (NSUInteger)CFReadStreamRead(logger->bufferReadStream, logger->sendBuffer, (CFIndex)logger->sendBufferSize);
 				}
 			}
 			else
@@ -791,10 +791,10 @@ static void LoggerWriteMoreData(Logger *logger)
 				{
 					CFDataRef d = (CFDataRef)CFArrayGetValueAtIndex(logger->logQueue, 0);
 					CFIndex dsize = CFDataGetLength(d);
-					if ((logger->sendBufferUsed + dsize) > logger->sendBufferSize)
+					if ((logger->sendBufferUsed + (NSUInteger)dsize) > logger->sendBufferSize)
 						break;
 					memcpy(logger->sendBuffer + logger->sendBufferUsed, CFDataGetBytePtr(d), dsize);
-					logger->sendBufferUsed += dsize;
+					logger->sendBufferUsed += (NSUInteger)dsize;
 					CFArrayRemoveValueAtIndex(logger->logQueue, 0);
 					logger->incompleteSendOfFirstItem = NO;
 				}
@@ -826,17 +826,17 @@ static void LoggerWriteMoreData(Logger *logger)
 		{
 			CFIndex written = CFWriteStreamWrite(logger->logStream,
 												 logger->sendBuffer + logger->sendBufferOffset,
-												 logger->sendBufferUsed - logger->sendBufferOffset);
+												 (CFIndex)logger->sendBufferUsed - (CFIndex)logger->sendBufferOffset);
 			if (written < 0)
 			{
 				// We'll get an event if the stream closes on error. Don't discard the data,
 				// it will be sent as soon as a connection is re-acquired.
 				return;
 			}
-			if ((logger->sendBufferOffset + written) < logger->sendBufferUsed)
+			if ((logger->sendBufferOffset + (NSUInteger)written) < logger->sendBufferUsed)
 			{
 				// everything couldn't be sent at once
-				logger->sendBufferOffset += written;
+				logger->sendBufferOffset += (NSUInteger)written;
 			}
 			else
 			{
@@ -846,7 +846,7 @@ static void LoggerWriteMoreData(Logger *logger)
 		}
 		else if (sendFirstItem)
 		{
-			CFIndex length = CFDataGetLength(sendFirstItem) - logger->sendBufferOffset;
+			CFIndex length = CFDataGetLength(sendFirstItem) - (CFIndex)logger->sendBufferOffset;
 			CFIndex written = CFWriteStreamWrite(logger->logStream,
 												 CFDataGetBytePtr(sendFirstItem) + logger->sendBufferOffset,
 												 length);
@@ -943,7 +943,7 @@ static void LoggerEmptyBufferFile(Logger *logger)
 	if (logger->bufferFile != NULL)
 	{
 		CFIndex bufferSize = 1 + CFStringGetLength(logger->bufferFile) * 3;
-		char *buffer = (char *)malloc(bufferSize);
+		char *buffer = (char *)malloc((size_t)bufferSize);
 		if (buffer != NULL)
 		{
 			if (CFStringGetFileSystemRepresentation(logger->bufferFile, buffer, bufferSize))
@@ -987,7 +987,7 @@ static void LoggerFlushQueueToBufferStream(Logger *logger, BOOL firstEntryIsClie
 	// Write outstanding messages to the buffer file (streams don't detect disconnection
 	// until the next write, where we could lose one or more messages)
 	if (!firstEntryIsClientInfo && logger->sendBufferUsed)
-		CFWriteStreamWrite(logger->bufferWriteStream, logger->sendBuffer + logger->sendBufferOffset, logger->sendBufferUsed - logger->sendBufferOffset);
+		CFWriteStreamWrite(logger->bufferWriteStream, logger->sendBuffer + logger->sendBufferOffset, (CFIndex)logger->sendBufferUsed - (CFIndex)logger->sendBufferOffset);
 	
 	int n = 0;
 	while (CFArrayGetCount(logger->logQueue))
@@ -1006,7 +1006,7 @@ static void LoggerFlushQueueToBufferStream(Logger *logger, BOOL firstEntryIsClie
 		if (n == 0 && firstEntryIsClientInfo && logger->sendBufferUsed)
 		{
 			// try hard: write any outstanding messages to the buffer file, after the client info
-			CFWriteStreamWrite(logger->bufferWriteStream, logger->sendBuffer + logger->sendBufferOffset, logger->sendBufferUsed - logger->sendBufferOffset);
+			CFWriteStreamWrite(logger->bufferWriteStream, logger->sendBuffer + logger->sendBufferOffset, (CFIndex)logger->sendBufferUsed - (CFIndex)logger->sendBufferOffset);
 		}
 		n++;
 	}
@@ -1194,7 +1194,7 @@ static void LoggerStartReachabilityChecking(Logger *logger)
 		LOGGERDBG(CFSTR("Starting SCNetworkReachability to wait for host %@ to be reachable"), logger->host);
 
 		CFIndex length = CFStringGetLength(logger->host) * 3;
-		char *buffer = (char *)malloc(length + 1);
+		char *buffer = (char *)malloc((size_t)length + 1U);
 		CFStringGetBytes(logger->host, CFRangeMake(0, CFStringGetLength(logger->host)), kCFStringEncodingUTF8, '?', false, (UInt8 *)buffer, length, &length);
 		buffer[length] = 0;
 
@@ -1621,11 +1621,11 @@ static void LoggerMessageAddCString(CFMutableDataRef data, const char *aString, 
 		return;
 	
 	// convert to UTF-8
-	int len = strlen(aString);
-	uint8_t *buf = malloc(2 * len);
+	size_t len = strlen(aString);
+	uint8_t *buf = malloc(2U * len);
 	if (buf != NULL)
 	{
-		int i, n = 0;
+		size_t i, n = 0;
 		for (i = 0; i < len; i++)
 		{
 			uint8_t c = (uint8_t)(*aString++);
@@ -1642,7 +1642,7 @@ static void LoggerMessageAddCString(CFMutableDataRef data, const char *aString, 
 			uint8_t keyAndType[2] = {(uint8_t)key, PART_TYPE_STRING};
 			CFDataAppendBytes(data, (const UInt8 *)&keyAndType, 2);
 			CFDataAppendBytes(data, (const UInt8 *)&partSize, 4);
-			CFDataAppendBytes(data, buf, n);
+			CFDataAppendBytes(data, buf, (CFIndex)n);
 			LoggerMessageUpdateDataHeader(data);
 		}
 		free(buf);
@@ -1663,7 +1663,7 @@ static void LoggerMessageAddString(CFMutableDataRef data, CFStringRef aString, i
 	CFIndex bytesLength = stringLength * 4;
 	if (stringLength)
 	{
-		bytes = (uint8_t *)malloc(stringLength * 4 + 4);
+		bytes = (uint8_t *)malloc((size_t)stringLength * 4U + 4U);
 		CFStringGetBytes(aString, CFRangeMake(0, stringLength), kCFStringEncodingUTF8, '?', false, bytes, bytesLength, &bytesLength);
 		partSize = htonl(bytesLength);
 	}
