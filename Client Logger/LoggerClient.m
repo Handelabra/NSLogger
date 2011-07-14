@@ -1,7 +1,7 @@
 /*
  * LoggerClient.m
  *
- * version 1.0b10 2011-02-18
+ * version 1.0b11 2011-06-19
  *
  * Main implementation of the NSLogger client side code
  * Part of NSLogger (client side)
@@ -167,14 +167,14 @@ static pthread_mutex_t sDefaultLoggerMutex = PTHREAD_MUTEX_INITIALIZER;
 #pragma mark -
 #pragma mark Default logger
 // -----------------------------------------------------------------------------
-static __attribute__((unused)) void LoggerSetDefautLogger(Logger *defaultLogger)
+void LoggerSetDefaultLogger(Logger *defaultLogger)
 {
 	pthread_mutex_lock(&sDefaultLoggerMutex);
 	sDefaultLogger = defaultLogger;
 	pthread_mutex_unlock(&sDefaultLoggerMutex);
 }
 
-Logger *LoggerGetDefaultLogger()
+Logger *LoggerGetDefaultLogger(void)
 {
 	if (sDefaultLogger == NULL)
 	{
