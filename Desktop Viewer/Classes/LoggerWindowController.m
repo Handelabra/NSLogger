@@ -3,7 +3,7 @@
  *
  * BSD license follows (http://www.opensource.org/licenses/bsd-license.php)
  * 
- * Copyright (c) 2010 Florent Pillet <fpillet@gmail.com> All Rights Reserved.
+ * Copyright (c) 2010-2011 Florent Pillet <fpillet@gmail.com> All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -108,6 +108,9 @@ static NSString * const kNSLoggerFilterPasteboardType = @"com.florentpillet.NSLo
 
 - (void)windowDidLoad
 {
+	if ([[self window] respondsToSelector:@selector(setRestorable:)])
+		[[self window] setRestorable:NO];
+
 	messageCell = [[LoggerMessageCell alloc] init];
 	clientInfoCell = [[LoggerClientInfoCell alloc] init];
 	markerCell = [[LoggerMarkerCell alloc] init];

@@ -1,5 +1,5 @@
 /*
- * LoggerSplitView.m
+ * LoggerDocumentController.h
  *
  * BSD license follows (http://www.opensource.org/licenses/bsd-license.php)
  * 
@@ -28,29 +28,33 @@
  * SOFTWARE,   EVEN  IF   ADVISED  OF   THE  POSSIBILITY   OF  SUCH   DAMAGE.
  * 
  */
-#import "LoggerSplitView.h"
 
-@implementation LoggerSplitView
+#import "LoggerDocumentController.h"
 
-- (void)mouseDown:(NSEvent *)theEvent
+@implementation LoggerDocumentController
+
++ (NSDocumentController *)sharedDocumentController
 {
-	// hack: to detect the end of a split view drag, post a message that will be sent
-	// only when the runloop returns to the default run loop mode. At this point, we will
-	// send a notification that will force a logTable re-tile if needed
-	// (explanation: during a split view divided drag, the runloop is being set in a
-	// special mode and will exit this mode only when dragging ends -- since we don't
-	// get any notification that a divider drag ended, I had to find another way to
-	// detect the end of a divider drag).
-	[self performSelector:@selector(sendTableRetileNotification)
-			   withObject:nil
-			   afterDelay:0
-				  inModes:[NSArray arrayWithObject:NSDefaultRunLoopMode]];
-	[super mouseDown:theEvent];
+	static LoggerDocumentController *sSharedController = nil;
+	if (sSharedController == nil)
+		sSharedController = [[LoggerDocumentController alloc] init];
+	assert([NSDocumentController sharedDocumentController] == sSharedController);
+	return sSharedController;
 }
 
-- (void)sendTableRetileNotification
+- (id)openUntitledDocumentAndDisplay:(BOOL)displayDocument error:(NSError **)outError
 {
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"TileLogTableNotification" object:nil];
+	if (outError != NULL)
+		*outError = [[NSError alloc] initWithDomain:@"NSLogger" code:-1 userInfo:nil];
+	return nil;
+}
+
+- (void)reopenDocumentForURL:(NSURL *)urlOrNil
+		   withContentsOfURL:(NSURL *)contentsURL
+					 display:(BOOL)displayDocument
+		   completionHandler:(void (^)(NSDocument *document, BOOL documentWasAlreadyOpen, NSError *error))completionHandler
+{
+	completionHandler(nil, NO, nil);
 }
 
 @end
