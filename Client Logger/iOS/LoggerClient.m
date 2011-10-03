@@ -355,7 +355,7 @@ void LoggerStop(Logger *logger)
 
 		// to make sure potential errors are catched, set the whole structure
 		// to a value that will make code crash if it tries using pointers to it.
-		memset(logger, 0x55, sizeof(logger));
+		memset(logger, 0x55, sizeof(*logger));
 
 		free(logger);
 	}
@@ -1328,7 +1328,7 @@ static BOOL LoggerConfigureAndOpenStream(Logger *logger)
 				kCFStreamSSLPeerName
 			};
 			const void *SSLValues[] = {
-				kCFStreamSocketSecurityLevelNegotiatedSSL,
+				kCFStreamSocketSecurityLevelSSLv3,
 				kCFBooleanFalse,			// no certificate chain validation (we use a self-signed certificate)
 				kCFBooleanFalse,			// not a server
 				kCFNull
@@ -1548,7 +1548,7 @@ static void LoggerMessageAddTimestampAndThreadID(CFMutableDataRef encoder)
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 		NSThread *thread = [NSThread currentThread];
 		NSString *name = [thread name];
-		if (name == nil)
+		if (![name length])
 		{
 			if ([thread isMainThread])
 				name = @"Main thread";
@@ -1693,14 +1693,16 @@ static void LoggerMessageAddString(CFMutableDataRef data, CFStringRef aString, i
 
 static void LoggerMessageAddData(CFMutableDataRef data, CFDataRef theData, int key, int partType)
 {
-	uint8_t keyAndType[2] = {(uint8_t)key, (uint8_t)partType};
-	CFIndex dataLength = CFDataGetLength(theData);
-	uint32_t partSize = htonl(dataLength);
-	CFDataAppendBytes(data, (const UInt8 *)&keyAndType, 2);
-	CFDataAppendBytes(data, (const UInt8 *)&partSize, 4);
-	if (partSize)
-		CFDataAppendBytes(data, CFDataGetBytePtr(theData), dataLength);
-	LoggerMessageUpdateDataHeader(data);
+	if ( theData != nil ){
+		uint8_t keyAndType[2] = {(uint8_t)key, (uint8_t)partType};
+		CFIndex dataLength = CFDataGetLength(theData);
+		uint32_t partSize = htonl(dataLength);
+		CFDataAppendBytes(data, (const UInt8 *)&keyAndType, 2);
+		CFDataAppendBytes(data, (const UInt8 *)&partSize, 4);
+		if (partSize)
+			CFDataAppendBytes(data, CFDataGetBytePtr(theData), dataLength);
+		LoggerMessageUpdateDataHeader(data);
+	}
 }
 
 static uint32_t LoggerMessageGetSeq(CFDataRef message)

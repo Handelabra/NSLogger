@@ -37,6 +37,8 @@
 #import "LoggerStatusWindowController.h"
 #import "LoggerPrefsWindowController.h"
 
+NSString * const kPrefKeepMultipleRuns = @"keepMultipleRuns";
+
 NSString * const kPrefPublishesBonjourService = @"publishesBonjourService";
 NSString * const kPrefHasDirectTCPIPResponder = @"hasDirectTCPIPResponder";
 NSString * const kPrefDirectTCPIPResponderPort = @"directTCPIPResponderPort";
@@ -273,22 +275,23 @@ NSString * const kPref_ApplicationFilterSet = @"appFilterSet";
 - (void)newConnection:(LoggerConnection *)aConnection fromTransport:(LoggerTransport *)aTransport
 {
 	// we are being called on the main thread (using dispatch_sync() from transport, so take care)
+	assert([NSThread isMainThread]);
+
+	// Go through all open documents,
 	// Detect reconnection from a previously disconnected client
 	NSDocumentController *docController = [NSDocumentController sharedDocumentController];
-	for (LoggerConnection *c in aTransport.connections)
+	for (LoggerDocument *doc in [docController documents])
 	{
-		if (c != aConnection && [aConnection isNewRunOfClient:c])
+		if (![doc isKindOfClass:[LoggerDocument class]])
+			continue;
+		for (LoggerConnection *c in doc.attachedLogs)
 		{
-			// Find the document using the previous connection
-			for (LoggerDocument *doc in [docController documents])
+			if (c != aConnection && [aConnection isNewRunOfClient:c])
 			{
-				if ([doc isKindOfClass:[LoggerDocument class]] && doc.attachedConnection == c)
-				{
-					// recycle this document window, bring it to front
-					aConnection.reconnectionCount = c.reconnectionCount + 1;
-					doc.attachedConnection = aConnection;
-					return;
-				}
+				// recycle this document window, bring it to front
+				aConnection.reconnectionCount = ((LoggerConnection *)[doc.attachedLogs lastObject]).reconnectionCount + 1;
+				[doc addConnection:aConnection];
+				return;
 			}
 		}
 	}
@@ -400,7 +403,7 @@ NSString * const kPref_ApplicationFilterSet = @"appFilterSet";
 					CFStringRef commonName = NULL;
 					if (SecCertificateCopyCommonName(certRef, &commonName) == noErr)
 					{
-						if (CFStringCompare(commonName, CFSTR("NSLogger SSL"), 0) == kCFCompareEqualTo)
+						if (commonName != NULL && CFStringCompare(commonName, CFSTR("NSLogger SSL"), 0) == kCFCompareEqualTo)
 						{
 							// We found our identity
 							CFTypeRef values[] = {

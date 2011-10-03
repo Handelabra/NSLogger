@@ -220,6 +220,21 @@ char sConnectionAssociatedObjectKey = 1;
 	});
 }
 
+- (void)clearMessages
+{
+	// Clear the backlog of messages, only keeping the top (client info) message
+	// This MUST be called on the messageProcessingQueue
+	assert(dispatch_get_current_queue() == messageProcessingQueue);
+	if (![messages count])
+		return;
+
+	// Locate the clientInfo message
+	if (((LoggerMessage *)[messages objectAtIndex:0]).type == LOGMSG_TYPE_CLIENTINFO)
+		[messages removeObjectsInRange:NSMakeRange(1, [messages count]-1)];
+	else
+		[messages removeAllObjects];
+}
+
 - (void)clientInfoReceived:(LoggerMessage *)message
 {
 	// Insert message at first position in the message list. In the unlikely event there is
@@ -354,6 +369,7 @@ char sConnectionAssociatedObjectKey = 1;
 			functionNames = [[NSMutableSet alloc] init];
 		objc_setAssociatedObject(aDecoder, &sConnectionAssociatedObjectKey, self, OBJC_ASSOCIATION_ASSIGN);
 		messages = [[aDecoder decodeObjectForKey:@"messages"] retain];
+		reconnectionCount = [aDecoder decodeIntForKey:@"reconnectionCount"];
 		restoredFromSave = YES;
 		
 		// we need a messageProcessingQueue just for the ability to add/insert marks
@@ -379,6 +395,7 @@ char sConnectionAssociatedObjectKey = 1;
 		[aCoder encodeObject:clientUDID forKey:@"clientUDID"];
 	[aCoder encodeObject:filenames forKey:@"filenames"];
 	[aCoder encodeObject:functionNames forKey:@"functionNames"];
+	[aCoder encodeInt:reconnectionCount forKey:@"reconnectionCount"];
 	@synchronized (messages)
 	{
 		[aCoder encodeObject:messages forKey:@"messages"];
