@@ -57,7 +57,7 @@
 
 - (id)initWithConnection:(LoggerConnection *)aConnection
 {
-	if (self = [super init])
+	if ((self = [super init]) != nil)
 	{
 		attachedLogs = [[NSMutableArray alloc] init];
 		aConnection.delegate = self;
@@ -271,7 +271,7 @@
 
 	if ([typeName isEqualToString:@"NSLogger Data"])
 	{
-		id logs = [[NSKeyedUnarchiver unarchiveObjectWithData:data] retain];
+		id logs = [NSKeyedUnarchiver unarchiveObjectWithData:data];
 		if ([logs isKindOfClass:[LoggerConnection class]])
 			[attachedLogs addObject:logs];
 		else
